@@ -1,0 +1,14 @@
+[mysqld]
+skip-networking=0
+skip-bind-address
+character-set-server=utf8
+collation-server=utf8_general_ci
+init_connect=SET collation_connection=utf8_general_ci
+init_connect=SET NAMES utf8
+default-time-zone='+9:00'
+
+[mysql]
+default-character-set=utf8
+
+[client]
+default-character-set=utf8
