@@ -11,7 +11,6 @@ class Post(BaseModel):
     author_name: str
     title: str
     content: str
-    edited: bool
     create_time: datetime
 
 class Comment(BaseModel):
@@ -19,7 +18,6 @@ class Comment(BaseModel):
     author_name: str
     is_post_author: bool
     content: str
-    edited: bool
     create_time: datetime
 
 class CommentList(BaseModel):
