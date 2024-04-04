@@ -1,0 +1,47 @@
+services:
+  mariadb:
+    image: mariadb:11.1.2
+    ports:
+      - "3306:3306/tcp"
+    hostname: mariadb
+    container_name: mariadb
+    volumes:
+      - ./sql/db.cnf:/etc/mysql/conf.d/db.cnf
+      - ./sql/db_init.sql:/docker-entrypoint-initdb.d/db_init.sql
+      - database_volume:/var/lib/mysql
+    environment:
+      MARIADB_DATABASE: blog
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MARIADB_USER: api
+      MARIADB_PASSWORD_FILE: /run/secrets/db_user_password
+      TZ: "Asia/Seoul"
+    secrets:
+      - db_root_password
+      - db_user_password
+    restart: unless-stopped
+
+  api:
+    image: tutorial
+    ports:
+      - "8080:8080/tcp"
+    hostname: api
+    container_name: api
+    depends_on:
+      - mariadb
+    environment:
+      - DBAPI_URL_FILE=/run/secrets/dbapi_url
+    restart: unless-stopped
+    secrets:
+      - dbapi_url
+
+volumes:
+  database_volume:
+    external: true
+
+secrets:
+  db_root_password:
+    file: ./config/db_root_password.txt
+  db_user_password:
+    file: ./config/db_user_password.txt
+  dbapi_url:
+    file: ./config/dbapi_url.txt

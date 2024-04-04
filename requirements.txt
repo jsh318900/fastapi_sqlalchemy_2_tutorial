@@ -1,5 +1,5 @@
+pymysql
 fastapi
 uvicorn[standard]
 sqlalchemy
-pymysql
 pydantic-settings

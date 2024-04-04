@@ -1,15 +1,17 @@
 from datetime import datetime
 from itertools import chain
 from uuid import uuid4
+from typing import Callable
 
 from .dto import User as UserDTO
 from .dto import Post as PostDTO
 from .dto import Comment as CommentDTO
 from .dto import PostList, CommentList
-from .entity import User, Post, Comment
+from .entity import User, Post, Comment, engine
 
 from sqlalchemy import select, insert, update, delete
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import sessionmaker, Session
+
 
 def verify_user(session:Session, username:str, password:str):
     user = session.scalars(select(User).where(User.username == username)).first()
@@ -23,7 +25,7 @@ def get_post(session:Session, post_uuid:str):
     post = session.scalars(select(Post).where(Post.uuid == post_uuid)).first()
 
     if not post:
-        raise UnknownContentException()
+        raise UnknownUUIDException(post_uuid)
     else:
         return post
 
@@ -31,11 +33,11 @@ def get_comment(session:Session, comment_uuid:str):
     comment = session.scalars(select(Comment).where(Comment.uuid == comment_uuid)).first()
 
     if not comment:
-        raise UnknownContentException()
+        raise UnknownUUIDException(comment_uuid)
     else:
         return comment
 
-def create_user(session:Session, name:str, username:str, password:str):
+async def create_user(session:Session, name:str, username:str, password:str):
     user = session.scalars(select(User).where(User.username == username)).first()
 
     if user:
@@ -46,22 +48,21 @@ def create_user(session:Session, name:str, username:str, password:str):
 
     return UserDTO(name=name, username=username)
 
-def create_post(session:Session, username:str, password:str, title:str, content:str):
-    user = verify_user(session, username, password)        
-    new_post = Post(uuid=uuid4(), user_id=user.id, title=title, content=content)
+async def create_post(session:Session, username:str, password:str, title:str, content:str):
+    user = verify_user(session, username, password)
+    new_post = Post(uuid=await create_uuid(), user_id=user.id, title=title, content=content)
     execute_transaction(session, lambda: session.add(new_post))
 
     return PostDTO(uuid=new_post.uuid, author_name=user.name, title=title, content=content, edited=False, create_time=new_post.create_time)
 
-
-def create_comment(session:Session, username:str, password:str, post_uuid:str, content:str):
+async def create_comment(session:Session, username:str, password:str, post_uuid:str, content:str):
     user = verify_user(session, username, password)
     post = session.scalars(select(Post).where(Post.uuid == post_uuid)).first()
 
     if not post: # 없는 포스트
-        raise UnknownContentException()
+        raise UnknownUUIDException(post_uuid)
     else:
-        new_comment = Comment(uuid=uuid4(), user_id=user.id, post_id=post.id, content=content)
+        new_comment = Comment(uuid=await create_uuid(), user_id=user.id, post_id=post.id, content=content)
         execute_transaction(session, lambda: session.add(new_comment))
     return CommentDTO(uuid=new_comment.uuid, author_name=user.name, is_post_author=post.user_id == user.id, content=content, create_time=new_comment.create_time)
 
@@ -137,7 +138,7 @@ def get_posts_by_author(session:Session, username:str):
         ) for post in user.posts
     ])
 
-def get_comments_by_post_author(username:str):
+def get_comments_by_post_author(session:Session, username:str):
     user = session.scalars(select(User).where(User.username == username)).first()
 
     return CommentList(comments=[
@@ -150,7 +151,7 @@ def get_comments_by_post_author(username:str):
         ) for comment in chain.from_iterable([post.comments for post in user.posts])
     ])
     
-def get_comment_by_author(username:str):
+def get_comment_by_author(session:Session, username:str):
     user = session.scalars(select(User).where(User.username == username)).first()
 
     return CommentList(comments=[
@@ -163,7 +164,7 @@ def get_comment_by_author(username:str):
         ) for comment in user.comments
     ])
 
-def execute_transaction(session, stmt_func):
+def execute_transaction(session:Session, stmt_func:Callable):
     try:
         stmt_func()
         session.flush()
@@ -173,11 +174,15 @@ def execute_transaction(session, stmt_func):
     else:
         session.commit()
 
+async def create_uuid():
+    return uuid4().hex
+
 class DuplicateUsernameException(Exception):
     pass
 
 class InvalidCredentialsException(Exception):
     pass
 
-class UnknownContentException(Exception):
-    pass
+class UnknownUUIDException(Exception):
+    def __init__(self, uuid):
+        self.uuid = uuid

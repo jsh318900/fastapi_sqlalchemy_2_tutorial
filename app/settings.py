@@ -5,5 +5,5 @@ class Settings(BaseSettings):
 
 settings = Settings()
 dbapi_url = None
-with open(dbapi_url_file, 'r') as f:
+with open(settings.dbapi_url_file, 'r') as f:
     dbapi_url = f.read()

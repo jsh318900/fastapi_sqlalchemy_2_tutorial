@@ -12,6 +12,7 @@ from .settings import dbapi_url
 
 metadata = MetaData()
 engine = create_engine(dbapi_url, echo=True) # 모든 쿼리를 로그 남기고 싶을 때 echo=True로 설정
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 class Base(DeclarativeBase):
 
