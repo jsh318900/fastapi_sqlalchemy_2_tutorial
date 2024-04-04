@@ -1,1 +1,1 @@
-maraidb+pymysql://api:qwer1234@mariadb/blog?charset=utf8
+mariadb+pymysql://api:qwer1234@mariadb/blog?charset=utf8

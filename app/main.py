@@ -4,9 +4,9 @@ from sqlalchemy.orm import Session
 import traceback
 
 from . import database
-from entity import SessionLocal
+from .entity import SessionLocal
 
-from database import DuplicateUsernameException, InvalidCredentialsException, UnknownUUIDException
+from .database import DuplicateUsernameException, InvalidCredentialsException, UnknownUUIDException
 from sqlalchemy.exc import SQLAlchemyError
 
 app = FastAPI()
@@ -20,7 +20,7 @@ def get_db():
 
 @app.post('/user')
 async def create_user(name:str, username:str, password:str, session:Session=Depends(get_db)):
-    return database.create_user(session, name, username, password)
+    return await database.create_user(session, name, username, password)
 
 @app.delete('/user')
 def delete_user(username:str, password:str, session:Session=Depends(get_db)):
@@ -32,7 +32,7 @@ def get_post(post_uuid:str, session:Session=Depends(get_db)):
 
 @app.post('/post')
 async def create_post(username:str, password:str, title:str, content:str, session:Session=Depends(get_db)):
-    database.create_post(session, username, password, title, content)
+    return await database.create_post(session, username, password, title, content)
 
 @app.put('/post')
 def update_post(username:str, password:str, post_uuid:str, title:str, content:str, session:Session=Depends(get_db)):
@@ -51,8 +51,8 @@ def get_comment(comment_uuid:str, session:Session=Depends(get_db)):
     return database.get_comment(session, comment_uuid)
 
 @app.post('/comment')
-async def create_comment(username:str, password:str, content:str, session:Session=Depends(get_db)):
-    database.create_comment(session, username, password, content)
+async def create_comment(username:str, password:str, post_uuid:str, content:str, session:Session=Depends(get_db)):
+    return await database.create_comment(session, username, password, post_uuid, content)
 
 @app.put('/comment')
 def update_comment(username:str, password:str, content:str, session:Session=Depends(get_db)):
@@ -81,7 +81,7 @@ async def handle_duplicate_username(request, exc):
 
 @app.exception_handler(InvalidCredentialsException)
 async def handle_invalid_account_info(request, exc):
-    return PlainTextResponse('', status_code=400)
+    return PlainTextResponse('Invalid Account Information', status_code=400)
 
 @app.exception_handler(UnknownUUIDException)
 async def handle_unknown_uuid(request, exc):
